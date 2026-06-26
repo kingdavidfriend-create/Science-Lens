@@ -1,6 +1,7 @@
+// SIMULATION STATE
 let bodies = [];
 let zones = [];
-let fxEffects = []; // New visual flash FX container
+let fxEffects = []; 
 let mode;
 let seed;
 let paused = false;
@@ -8,7 +9,7 @@ let showVectors = false;
 let showEnergy = false;
 let showTrails = true;
 let showZones = true;
-let bounceMode = false; // New physics state toggle
+let bounceMode = false; 
 let simSpeed = 1.0;
 let G = 0.5;
 let kCoulomb = 5.0;
@@ -113,7 +114,7 @@ function draw() {
     drawTrajectoryPrediction();
   }
 
-  // Draw expansion flashes
+  // Visual FX
   for (let i = fxEffects.length - 1; i >= 0; i--) {
     fxEffects[i].update();
     fxEffects[i].display();
@@ -145,6 +146,7 @@ function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
 }
 
+// Physics Loop
 function updatePhysics() {
   let forces = [];
   for (let i = 0; i < bodies.length; i++) {
@@ -186,6 +188,7 @@ function updatePhysics() {
   calculateEnergy();
 }
 
+// Math Equations
 function calculateForce(a, b) {
   let r = p5.Vector.sub(b.position, a.position);
   let dist = r.mag();
@@ -193,12 +196,14 @@ function calculateForce(a, b) {
 
   let force = createVector(0, 0);
 
+  // Gravity
   if (G > 0) {
     let fG = (G * a.mass * b.mass) / (softenedDist * softenedDist);
     let gVec = r.copy().setMag(fG);
     force.add(gVec);
   }
 
+  // Electrostatics
   if (kCoulomb > 0) {
     let fC = (kCoulomb * abs(a.charge * b.charge)) / (softenedDist * softenedDist);
     let sign = (a.charge * b.charge > 0) ? 1 : -1;
@@ -237,6 +242,7 @@ function handleCollisions() {
         return; 
       }
 
+      // Roche Limit
       if (mode.name === "Solar System" && bodies.length > 0) {
         let heavy = b1.mass > b2.mass ? b1 : b2;
         let light = b1.mass > b2.mass ? b2 : b1;
@@ -260,6 +266,7 @@ function handleCollisions() {
   }
 }
 
+// Elastic Bounce
 function resolveBounce(a, b) {
   let normal = p5.Vector.sub(b.position, a.position).normalize();
   let tangent = createVector(-normal.y, normal.x);
@@ -278,7 +285,7 @@ function resolveBounce(a, b) {
   a.velocity = p5.Vector.mult(normal, newV1n).add(p5.Vector.mult(tangent, v1t));
   b.velocity = p5.Vector.mult(normal, newV2n).add(p5.Vector.mult(tangent, v2t));
 
-  // Push apart instantly to break overlap sticking locks
+  // Anti-clipping
   let overlap = (a.radius + b.radius) - p5.Vector.dist(a.position, b.position);
   a.position.sub(p5.Vector.mult(normal, overlap * 0.5));
   b.position.add(p5.Vector.mult(normal, overlap * 0.5));
@@ -286,6 +293,7 @@ function resolveBounce(a, b) {
   fxEffects.push(new Shockwave(p5.Vector.lerp(a.position, b.position, 0.5), a.radius + b.radius, color(255, 255, 100)));
 }
 
+// Accretion Merge
 function mergeBodies(a, b) {
   let totalMass = a.mass + b.mass;
   let newVel = p5.Vector.add(
@@ -362,6 +370,7 @@ function cleanupBodies() {
   }
 }
 
+// Conservation Diagnostics
 function calculateEnergy() {
   totalKE = 0;
   totalPE = 0;
@@ -385,6 +394,7 @@ function calculateEnergy() {
   systemEnergy = totalKE + totalPE;
 }
 
+// Entity Blueprint
 class Particle {
   constructor(pos, vel, mass, radius, charge = 0) {
     this.position = pos.copy();
@@ -405,6 +415,7 @@ class Particle {
     this.acceleration.add(f);
   }
 
+  // Euler Integrator
   updateSemiEuler(dt) {
     this.velocity.add(p5.Vector.mult(this.acceleration, dt));
     this.velocity.mult(damping);
@@ -412,6 +423,7 @@ class Particle {
     this.acceleration.mult(0);
   }
 
+  // Verlet Integrator
   updateVerlet(dt) {
     let currentAcc = this.acceleration.copy();
     this.position.add(p5.Vector.mult(this.velocity, dt)).add(p5.Vector.mult(currentAcc, 0.5 * dt * dt));
@@ -420,6 +432,7 @@ class Particle {
     this.acceleration.mult(0);
   }
 
+  // RK4 Integrator
   updateRK4(dt) {
     let origPos = this.position.copy();
     let origVel = this.velocity.copy();
@@ -493,6 +506,7 @@ class Particle {
   }
 }
 
+// Visual Trail
 class Trail {
   constructor(maxLen) {
     this.points = [];
@@ -519,6 +533,7 @@ class Trail {
   }
 }
 
+// Blast Effect
 class Shockwave {
   constructor(pos, targetSize, col) {
     this.pos = pos.copy();
@@ -539,6 +554,7 @@ class Shockwave {
   }
 }
 
+// Core Zone
 class Zone {
   constructor(x, y, radius) {
     this.x = x;
@@ -566,6 +582,7 @@ class Zone {
   applyEffect(body) {}
 }
 
+// Friction Area
 class DragPool extends Zone {
   constructor(x, y, radius, coefficient) {
     super(x, y, radius);
@@ -580,6 +597,7 @@ class DragPool extends Zone {
   }
 }
 
+// Field Grid
 function displayVectorField() {
   let spacing = 65; 
   strokeWeight(1);
@@ -632,6 +650,7 @@ function computeFieldAt(point) {
   return field;
 }
 
+// Orbit Prediction
 function drawTrajectoryPrediction() {
   if (bodies.length < 2 || paused) return;
   
@@ -660,6 +679,7 @@ function drawTrajectoryPrediction() {
   endShape();
 }
 
+// Lagrange Points
 function displayLagrangePoints() {
   let sorted = [...bodies].sort((a, b) => b.mass - a.mass);
   if (sorted.length < 2) return;
@@ -693,6 +713,7 @@ function displayLagrangePoints() {
   text("L5", l5.x + 8, l5.y);
 }
 
+// UI Rendering
 function drawUI() {
   fill(0, 0, 0, 180);
   noStroke();
@@ -753,6 +774,7 @@ function drawBar(label, value, col, x, y, w, h, maxVal) {
   text(`${label}: ${value.toFixed(1)}`, x + 5, y + h/2);
 }
 
+// Mode Setup
 function switchMode(modeKey) {
   mode = MODES[modeKey];
   G = mode.G;
@@ -767,6 +789,7 @@ function switchMode(modeKey) {
   spawnPreset(mode.spawnPreset);
 }
 
+// Spawn Presets
 function spawnPreset(preset) {
   bodies = [];
   fxEffects = [];
@@ -815,6 +838,7 @@ function newSeed() {
   frameCount = 0;
 }
 
+// Mouse Interactions
 function mousePressed() {
   if (mouseX < 300 && mouseY < (showEnergy ? 470 : 330)) return;
 
@@ -870,6 +894,7 @@ function mouseWheel(event) {
   return false; 
 }
 
+// Key Controls
 function keyPressed() {
   switch(key.toLowerCase()) {
     case ' ': paused = !paused; break;
